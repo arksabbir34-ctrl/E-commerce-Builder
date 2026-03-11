@@ -3,14 +3,24 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, CreditCard, Calendar, ShieldCheck } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useCheckout } from "@/hooks/use-checkout";
 import { useToast } from "@/hooks/use-toast";
 import { insertOrderSchema } from "@shared/schema";
 import { motion } from "framer-motion";
 
-const checkoutSchema = insertOrderSchema.omit({ total: true, items: true });
+const checkoutSchema = insertOrderSchema.omit({ total: true, items: true }).extend({
+  cardNumber: z.string()
+    .min(1, "Card number is required")
+    .transform(v => v.replace(/\s/g, ""))
+    .pipe(z.string().length(16, "Card number must be 16 digits")),
+  cardExpiry: z.string()
+    .regex(/^\d{2}\/\d{2}$/, "Expiry must be MM/YY"),
+  cardCvc: z.string()
+    .regex(/^\d{3,4}$/, "CVV must be 3 or 4 digits"),
+  cardName: z.string().min(2, "Cardholder name is required"),
+});
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 export default function Checkout() {
@@ -18,6 +28,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [cardNumberDisplay, setCardNumberDisplay] = useState("");
   
   const total = getCartTotal();
   const shipping = total > 100 ? 0 : 15;
@@ -25,7 +36,7 @@ export default function Checkout() {
 
   const { mutate, isPending } = useCheckout();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CheckoutForm>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
   });
 
@@ -139,20 +150,111 @@ export default function Checkout() {
               </div>
 
               <div className="pt-8 border-t border-border">
-                <h3 className="text-xl font-display font-bold mb-6">Payment</h3>
-                <div className="bg-muted p-4 rounded-xl border border-border flex items-center justify-center h-32 mb-6">
-                  <p className="text-muted-foreground text-sm flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> This is a demo. No payment info required.
-                  </p>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-display font-bold">Payment Method</h3>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-green-500" />
+                    <span>Secure & Encrypted</span>
+                  </div>
                 </div>
 
-                <button 
+                {/* Accepted Cards */}
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="text-xs text-muted-foreground mr-1">Accepted:</span>
+                  {["VISA", "MC", "AMEX", "DISC"].map(card => (
+                    <span key={card} className="px-2 py-1 bg-muted border border-border rounded text-xs font-bold text-muted-foreground tracking-wide">
+                      {card}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Cardholder Name */}
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium">Cardholder Name</label>
+                  <input
+                    {...register("cardName")}
+                    className={`w-full p-3 rounded-xl border ${errors.cardName ? "border-destructive focus:ring-destructive/20" : "border-border focus:border-primary focus:ring-primary/20"} bg-background focus:outline-none focus:ring-4 transition-all`}
+                    placeholder="John Smith"
+                    autoComplete="cc-name"
+                  />
+                  {errors.cardName && <p className="text-destructive text-xs mt-1">{errors.cardName.message}</p>}
+                </div>
+
+                {/* Card Number */}
+                <div className="space-y-2 mb-4">
+                  <label className="text-sm font-medium">Card Number</label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      className={`w-full pl-10 pr-4 p-3 rounded-xl border ${errors.cardNumber ? "border-destructive focus:ring-destructive/20" : "border-border focus:border-primary focus:ring-primary/20"} bg-background focus:outline-none focus:ring-4 transition-all`}
+                      placeholder="1234 5678 9012 3456"
+                      maxLength={19}
+                      autoComplete="cc-number"
+                      value={cardNumberDisplay}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 16);
+                        const formatted = raw.replace(/(.{4})/g, "$1 ").trim();
+                        setCardNumberDisplay(formatted);
+                        setValue("cardNumber", raw, { shouldValidate: true });
+                      }}
+                    />
+                  </div>
+                  {errors.cardNumber && <p className="text-destructive text-xs mt-1">{errors.cardNumber.message}</p>}
+                </div>
+
+                {/* Expiry + CVV */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Expiry Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        {...register("cardExpiry")}
+                        className={`w-full pl-9 p-3 rounded-xl border ${errors.cardExpiry ? "border-destructive focus:ring-destructive/20" : "border-border focus:border-primary focus:ring-primary/20"} bg-background focus:outline-none focus:ring-4 transition-all`}
+                        placeholder="MM/YY"
+                        maxLength={5}
+                        autoComplete="cc-exp"
+                        onChange={e => {
+                          let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
+                          setValue("cardExpiry", v, { shouldValidate: true });
+                          e.target.value = v;
+                        }}
+                      />
+                    </div>
+                    {errors.cardExpiry && <p className="text-destructive text-xs mt-1">{errors.cardExpiry.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">CVV / CVC</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        {...register("cardCvc")}
+                        className={`w-full pl-9 p-3 rounded-xl border ${errors.cardCvc ? "border-destructive focus:ring-destructive/20" : "border-border focus:border-primary focus:ring-primary/20"} bg-background focus:outline-none focus:ring-4 transition-all`}
+                        placeholder="123"
+                        maxLength={4}
+                        autoComplete="cc-csc"
+                        type="password"
+                      />
+                    </div>
+                    {errors.cardCvc && <p className="text-destructive text-xs mt-1">{errors.cardCvc.message}</p>}
+                  </div>
+                </div>
+
+                <button
                   type="submit"
                   disabled={isPending}
-                  className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                  data-testid="button-place-order"
+                  className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                 >
+                  <Lock className="w-5 h-5" />
                   {isPending ? "Processing..." : `Pay $${grandTotal.toFixed(2)}`}
                 </button>
+                <p className="text-center text-xs text-muted-foreground mt-3 flex items-center justify-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                  Your payment info is encrypted and secure
+                </p>
               </div>
             </form>
           </div>
