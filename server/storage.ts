@@ -1,38 +1,54 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import {
+  products, contacts, orders,
+  type Product, type InsertProduct,
+  type Contact, type InsertContact,
+  type Order, type InsertOrder
+} from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Products
+  getProducts(search?: string, category?: string): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  
+  // Contacts
+  createContact(contact: InsertContact): Promise<Contact>;
+  
+  // Orders
+  createOrder(order: InsertOrder): Promise<Order>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getProducts(search?: string, category?: string): Promise<Product[]> {
+    let query = db.select().from(products);
+    let results = await query;
+    
+    if (search) {
+      const lowerSearch = search.toLowerCase();
+      results = results.filter(p => p.name.toLowerCase().includes(lowerSearch) || p.description.toLowerCase().includes(lowerSearch));
+    }
+    if (category) {
+      results = results.filter(p => p.category === category);
+    }
+    
+    return results;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [newContact] = await db.insert(contacts).values(contact).returning();
+    return newContact;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
