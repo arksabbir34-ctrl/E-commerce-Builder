@@ -12,7 +12,12 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Use VITE_API_URL if provided (for cross-origin deployments like Netlify + separate backend)
+  // Otherwise use relative URLs for same-origin deployments
+  const apiBase = import.meta.env.VITE_API_URL || "";
+  const fullUrl = apiBase + url;
+  
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +34,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    // Use VITE_API_URL if provided (for cross-origin deployments like Netlify + separate backend)
+    // Otherwise use relative URLs for same-origin deployments
+    const apiBase = import.meta.env.VITE_API_URL || "";
+    const url = apiBase + (queryKey.join("/") as string);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 

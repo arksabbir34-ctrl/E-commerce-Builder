@@ -1,0 +1,28 @@
+# Netlify Configuration for E-Commerce Frontend
+# This configuration deploys the React frontend to Netlify
+
+[build]
+command = "npm run build"
+publish = "dist/public"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = false
+
+# Environment variables for production
+# Set API_URL to point to your backend server
+# Examples:
+#   - Replit deployment: https://your-replit-name.replit.dev
+#   - Railway/Render: https://your-app-name.railway.app
+#   - Heroku: https://your-app-name.herokuapp.com
+
+[context.production.environment]
+VITE_API_URL = ""
+
+[context.preview.environment]
+VITE_API_URL = ""
+
+[context.deploy-preview.environment]
+VITE_API_URL = ""
