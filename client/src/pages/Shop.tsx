@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Filter, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { useProducts } from "@/hooks/use-products";
 import { ProductCard } from "@/components/shop/ProductCard";
+import { CATEGORIES } from "@/data/products";
 
 export default function Shop() {
   const [location] = useLocation();
@@ -25,7 +26,7 @@ export default function Shop() {
     search: activeSearch || undefined
   });
 
-  const categories = ["All", "Furniture", "Lighting", "Decor", "Textiles"];
+  const categories = CATEGORIES;
 
   const handleCategoryClick = (cat: string) => {
     setActiveCategory(cat);

@@ -1,46 +1,69 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
+import { buildUrl } from "@shared/routes";
 import type { Product } from "@shared/schema";
+import { PRODUCTS } from "@/data/products";
+
+// Filter products locally — used both as fallback and primary source on static hosts (Netlify)
+function filterProducts(products: Product[], params?: { search?: string; category?: string }) {
+  let result = [...products];
+  if (params?.category && params.category !== "All") {
+    result = result.filter((p) => p.category === params.category);
+  }
+  if (params?.search) {
+    const q = params.search.toLowerCase();
+    result = result.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+    );
+  }
+  return result;
+}
 
 export function useProducts(params?: { search?: string; category?: string }) {
-  return useQuery({
-    queryKey: [api.products.list.path, params?.search, params?.category],
+  return useQuery<Product[]>({
+    queryKey: ["products", params?.search, params?.category],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      if (params?.search) searchParams.set("search", params.search);
-      if (params?.category && params.category !== "All") searchParams.set("category", params.category);
-      
-      const url = `${api.products.list.path}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-      
-      const res = await fetch(url, { credentials: "omit" }); // using omit for public catalog
-      if (!res.ok) throw new Error("Failed to fetch products");
-      
-      // Fallback parsing if Zod schemas aren't properly exported
-      const data = await res.json();
+      // Try the backend API first (works on Replit / same-origin deploys)
+      const apiBase = import.meta.env.VITE_API_URL || "";
       try {
-        return api.products.list.responses[200].parse(data);
-      } catch (e) {
-        return data as Product[];
+        const searchParams = new URLSearchParams();
+        if (params?.search) searchParams.set("search", params.search);
+        if (params?.category && params.category !== "All")
+          searchParams.set("category", params.category);
+
+        const url =
+          apiBase +
+          `/api/products` +
+          (searchParams.toString() ? `?${searchParams.toString()}` : "");
+
+        const res = await fetch(url, { credentials: "omit" });
+        if (!res.ok) throw new Error("API unavailable");
+        const data = await res.json();
+        // Only use the API result if it actually returned products
+        if (Array.isArray(data) && data.length > 0) return data as Product[];
+        throw new Error("API returned empty");
+      } catch {
+        // Fall back to bundled static data — works on Netlify and offline
+        return filterProducts(PRODUCTS, params);
       }
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useProduct(id: number) {
-  return useQuery({
-    queryKey: [api.products.get.path, id],
+  return useQuery<Product | null>({
+    queryKey: ["product", id],
     queryFn: async () => {
-      const url = buildUrl(api.products.get.path, { id });
-      const res = await fetch(url, { credentials: "omit" });
-      
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch product");
-      
-      const data = await res.json();
+      const apiBase = import.meta.env.VITE_API_URL || "";
       try {
-        return api.products.get.responses[200].parse(data);
-      } catch (e) {
-        return data as Product;
+        const url = apiBase + buildUrl("/api/products/:id", { id });
+        const res = await fetch(url, { credentials: "omit" });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error("API unavailable");
+        return (await res.json()) as Product;
+      } catch {
+        // Fallback to static data
+        return PRODUCTS.find((p) => p.id === id) ?? null;
       }
     },
     enabled: !!id,

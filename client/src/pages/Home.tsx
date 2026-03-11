@@ -120,11 +120,10 @@ export default function Home() {
                 </span>
               </div>
             </Link>
-            <Link href="/shop?category=Decor" className="group relative h-96 rounded-3xl overflow-hidden block">
-              {/* modern vase decor minimal */}
-              <img src="https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80" alt="Decor" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <Link href="/shop?category=Electronics" className="group relative h-96 rounded-3xl overflow-hidden block">
+              <img src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&q=80" alt="Electronics" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-10">
-                <h3 className="text-3xl font-display font-bold text-white mb-2">Minimal Decor</h3>
+                <h3 className="text-3xl font-display font-bold text-white mb-2">Electronics</h3>
                 <span className="text-white/90 group-hover:text-primary transition-colors flex items-center gap-2">
                   Shop Category <ArrowRight className="w-4 h-4" />
                 </span>
