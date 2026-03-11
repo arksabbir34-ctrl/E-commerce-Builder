@@ -1,0 +1,64 @@
+Build a complete modern e-commerce website using HTML, CSS, and JavaScript. The website must be fully responsive, mobile-friendly, and designed with a clean professional UI similar to modern online stores.
+
+The website must be a frontend static project so it can be deployed easily on Netlify.
+
+Create a full online store with the following pages and features.
+
+Pages:
+Home page with hero banner, featured products, categories section, and promotional offers.
+Shop page showing all products in a grid layout with product cards.
+Product details page showing product image, description, price, rating, and add-to-cart button.
+Shopping cart page where users can view items, update quantity, remove items, and see total price.
+Checkout page with a form for name, email, address, phone number, and order summary.
+Contact page with contact form and store information.
+About page describing the store.
+
+Navigation:
+A modern sticky navigation bar with logo, menu links (Home, Shop, About, Contact), search bar, and cart icon showing number of items in cart.
+
+Product System:
+Store all product data in a JavaScript JSON file including id, name, category, price, description, image, and rating.
+
+Cart System:
+Users can add products to cart, increase or decrease quantity, remove items, and see subtotal and total price. Use browser localStorage to save cart data so it stays after page refresh.
+
+Search and Filter:
+Add product search functionality and category filters.
+
+UI Design:
+Use modern CSS design with product cards, hover effects, shadows, rounded corners, and smooth animations. Make the design responsive for mobile, tablet, and desktop.
+
+Project Folder Structure:
+
+ecommerce-store
+index.html
+shop.html
+product.html
+cart.html
+checkout.html
+about.html
+contact.html
+
+css
+style.css
+
+js
+script.js
+cart.js
+products.js
+
+images
+product images and icons
+
+JavaScript Features:
+Dynamic product loading from JSON, cart counter in navbar, add-to-cart button functionality, cart total calculation, product filtering, search bar functionality, and localStorage storage for cart items.
+
+Extra Features:
+Include product rating stars, sale badges, responsive mobile menu, loading animation, and a modern footer with social media icons.
+
+Deployment Requirements:
+Make sure all files are static and properly linked so the website works after deployment on Netlify.
+
+Add comments in the code to explain each section clearly for beginners.
+
+The final result should look like a professional online store similar to Amazon or modern Shopify-style websites.
